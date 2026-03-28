@@ -1,0 +1,215 @@
+import java.util.*;
+
+// Enum for Vehicle Types
+enum VehicleType {
+    CAR, BIKE, TRUCK
+}
+
+// Vehicle class
+class Vehicle {
+    String number;
+    VehicleType type;
+    long entryTime;
+    int ticketId;
+
+    public Vehicle(String number, VehicleType type, int ticketId) {
+        this.number = number;
+        this.type = type;
+        this.ticketId = ticketId;
+        this.entryTime = System.currentTimeMillis();
+    }
+}
+
+// Parking Lot class
+class ParkingLot {
+    private int capacity;
+
+    // Separate queues for vehicle types
+    private Queue<Integer> bikeSlots = new LinkedList<>();
+    private Queue<Integer> carSlots = new LinkedList<>();
+    private Queue<Integer> truckSlots = new LinkedList<>();
+
+    private Map<Integer, Vehicle> occupiedSlots = new HashMap<>();
+
+    private double totalRevenue = 0;
+    private int ticketCounter = 1;
+
+    public ParkingLot(int capacity) {
+        this.capacity = capacity;
+
+        // Distribute slots
+        for (int i = 1; i <= capacity; i++) {
+            if (i % 3 == 0) truckSlots.add(i);
+            else if (i % 2 == 0) carSlots.add(i);
+            else bikeSlots.add(i);
+        }
+    }
+
+    // Check duplicate
+    private boolean isDuplicate(String number) {
+        for (Vehicle v : occupiedSlots.values()) {
+            if (v.number.equals(number)) return true;
+        }
+        return false;
+    }
+
+    // Park vehicle
+    public void parkVehicle(String number, VehicleType type) {
+        if (isDuplicate(number)) {
+            System.out.println(" Vehicle already parked!");
+            return;
+        }
+
+        Queue<Integer> selectedQueue = getQueue(type);
+
+        if (selectedQueue.isEmpty()) {
+            System.out.println(" No slots available for " + type);
+            return;
+        }
+
+        int slot = selectedQueue.poll();
+        Vehicle vehicle = new Vehicle(number, type, ticketCounter++);
+
+        occupiedSlots.put(slot, vehicle);
+
+        System.out.println(" Vehicle Parked!");
+        System.out.println("Ticket ID: " + vehicle.ticketId);
+        System.out.println("Slot: " + slot);
+        System.out.println("Type: " + type);
+        System.out.println("Entry Time: " + new Date(vehicle.entryTime));
+    }
+
+    // Remove vehicle
+    public void removeVehicle(int slot) {
+        if (!occupiedSlots.containsKey(slot)) {
+            System.out.println(" Invalid Slot!");
+            return;
+        }
+
+        Vehicle v = occupiedSlots.remove(slot);
+        getQueue(v.type).add(slot);
+
+        long duration = (System.currentTimeMillis() - v.entryTime) / 1000;
+        long hours = (duration / 3600) + 1;
+
+        double fee = calculateFee(v.type, hours);
+        totalRevenue += fee;
+
+        System.out.println(" Vehicle Removed: " + v.number);
+        System.out.println("Time: " + hours + " hours");
+        System.out.println("Fee: ₹" + fee);
+    }
+
+    // Get correct queue
+    private Queue<Integer> getQueue(VehicleType type) {
+        switch (type) {
+            case BIKE: return bikeSlots;
+            case CAR: return carSlots;
+            case TRUCK: return truckSlots;
+        }
+        return carSlots;
+    }
+
+    // Fee calculation
+    private double calculateFee(VehicleType type, long hours) {
+        switch (type) {
+            case BIKE: return hours * 10;
+            case CAR: return hours * 20;
+            case TRUCK: return hours * 30;
+        }
+        return hours * 20;
+    }
+
+    // Search vehicle
+    public void findVehicle(String number) {
+        for (Map.Entry<Integer, Vehicle> entry : occupiedSlots.entrySet()) {
+            if (entry.getValue().number.equals(number)) {
+                System.out.println("Found at Slot: " + entry.getKey());
+                return;
+            }
+        }
+        System.out.println(" Vehicle not found!");
+    }
+
+    // Display status
+    public void displayStatus() {
+        System.out.println("\n Parking Status:");
+        for (int i = 1; i <= capacity; i++) {
+            if (occupiedSlots.containsKey(i)) {
+                Vehicle v = occupiedSlots.get(i);
+                System.out.println("Slot " + i + ": " + v.number + " (" + v.type + ")");
+            } else {
+                System.out.println("Slot " + i + ": Empty");
+            }
+        }
+    }
+
+    // Show revenue
+    public void showRevenue() {
+        System.out.println(" Total Revenue: ₹" + totalRevenue);
+    }
+}
+
+// Main class
+public class UltimateParkingLotApp {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.println("=== Ultimate Parking Lot System ===");
+        System.out.print("Enter total slots: ");
+        int capacity = sc.nextInt();
+
+        ParkingLot lot = new ParkingLot(capacity);
+
+        while (true) {
+            System.out.println("\nMenu:");
+            System.out.println("1. Park Vehicle");
+            System.out.println("2. Remove Vehicle");
+            System.out.println("3. Search Vehicle");
+            System.out.println("4. Display Status");
+            System.out.println("5. Show Revenue");
+            System.out.println("6. Exit");
+
+            int choice = sc.nextInt();
+
+            switch (choice) {
+                case 1:
+                    sc.nextLine();
+                    System.out.print("Enter vehicle number: ");
+                    String num = sc.nextLine();
+
+                    System.out.println("1.Car 2.Bike 3.Truck");
+                    int t = sc.nextInt();
+
+                    VehicleType type = (t == 1) ? VehicleType.CAR :
+                                       (t == 2) ? VehicleType.BIKE : VehicleType.TRUCK;
+
+                    lot.parkVehicle(num, type);
+                    break;
+
+                case 2:
+                    System.out.print("Enter slot: ");
+                    lot.removeVehicle(sc.nextInt());
+                    break;
+
+                case 3:
+                    sc.nextLine();
+                    System.out.print("Enter vehicle number: ");
+                    lot.findVehicle(sc.nextLine());
+                    break;
+
+                case 4:
+                    lot.displayStatus();
+                    break;
+
+                case 5:
+                    lot.showRevenue();
+                    break;
+
+                case 6:
+                    System.out.println("Exiting...");
+                    System.exit(0);
+            }
+        }
+    }
+}
